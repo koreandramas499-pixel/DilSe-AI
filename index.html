@@ -1,18 +1,20 @@
-
 <!DOCTYPE html>
 <html lang="mr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>DilSe AI ❤️</title>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(135deg,#ffe0ed,#e6d9ff);
+  background: linear-gradient(135deg, #ffe0ed, #e6d9ff);
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -40,8 +42,13 @@ header {
   text-align: center;
 }
 
-header h2 { margin: 0 0 5px; }
-header small { opacity: .9; }
+header h2 {
+  margin: 0 0 5px;
+}
+
+header small {
+  opacity: .9;
+}
 
 .profile {
   text-align: center;
@@ -50,8 +57,8 @@ header small { opacity: .9; }
 }
 
 .profile img {
-  width: 105px;
-  height: 105px;
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
   object-fit: cover;
   border: 4px solid #ff8bb0;
@@ -68,8 +75,15 @@ header small { opacity: .9; }
   font-size: 13px;
 }
 
+.status {
+  font-size: 12px;
+  color: #24945b;
+  margin-top: 5px;
+}
+
 #chat {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 14px;
   background: #fffafd;
@@ -81,7 +95,8 @@ header small { opacity: .9; }
   border-radius: 17px;
   max-width: 85%;
   overflow-wrap: anywhere;
-  line-height: 1.4;
+  white-space: pre-wrap;
+  line-height: 1.5;
 }
 
 .bot {
@@ -115,12 +130,17 @@ input {
 
 button {
   border: none;
-  padding: 11px;
+  padding: 11px 13px;
   border-radius: 18px;
   background: #ff4f87;
   color: white;
-  font-size: 15px;
+  font-size: 14px;
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: .6;
+  cursor: not-allowed;
 }
 
 .extras {
@@ -146,113 +166,187 @@ footer {
 </head>
 
 <body>
+
 <div class="app">
 
-<header>
-  <h2>❤️ DilSe AI</h2>
-  <small>Your AI Companion</small>
-</header>
+  <header>
+    <h2>❤️ DilSe AI</h2>
+    <small>Your AI Companion</small>
+  </header>
 
-<section class="profile">
-  <img
-    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
-    alt="AI companion"
-  >
-  <h3>Priya ❤️</h3>
-  <p>✨ Tumchi AI friend</p>
-</section>
+  <section class="profile">
+    <img
+      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+      alt="Priya AI Companion"
+    >
 
-<div id="chat" aria-live="polite">
-  <div class="msg bot">
-    Hi! ❤️ Namaste! Mi Priya aahe.
-    Tu kasa aahes? Aaj kay chalu aahe?
+    <h3>Priya ❤️</h3>
+    <p>Tumchi AI friend</p>
+    <div class="status" id="status">AI Companion</div>
+  </section>
+
+  <div id="chat" aria-live="polite">
+    <div class="msg bot">
+      Hi! ❤️ Namaste!
+
+      Mi Priya aahe. Tu kasa aahes?
+
+      Aaj kay chalu aahe? 😊
+    </div>
   </div>
-</div>
 
-<div class="controls">
-  <input
-    id="message"
-    type="text"
-    placeholder="Message type kar..."
-    aria-label="Message"
-  >
-  <button onclick="sendMessage()">Send ➤</button>
-</div>
+  <div class="controls">
+    <input
+      id="message"
+      type="text"
+      placeholder="Priya la message kar..."
+      aria-label="Message"
+      autocomplete="off"
+    >
 
-<div class="extras">
-  <button onclick="speakLast()">🔊 Voice</button>
-  <button onclick="startVoice()">🎤 Bolun type kar</button>
-</div>
+    <button id="sendButton" onclick="sendMessage()">
+      Send ➤
+    </button>
+  </div>
 
-<footer>
-  Demo AI Companion • Messages stay in this browser session
-</footer>
+  <div class="extras">
+    <button onclick="speakLast()">🔊 Voice</button>
+    <button onclick="startVoice()">🎤 Bolun Type Kar</button>
+    <button onclick="clearChat()">🗑️ Clear</button>
+  </div>
+
+  <footer>
+    DilSe AI ❤️ • AI responses may sometimes be incorrect
+  </footer>
 
 </div>
 
 <script>
+const BACKEND_URL =
+  "https://dilse-ai-backend.koreandramas499.workers.dev";
+
 const chat = document.getElementById("chat");
 const input = document.getElementById("message");
+const sendButton = document.getElementById("sendButton");
+const statusText = document.getElementById("status");
 
-let lastReply =
-  "Hi! ❤️ Namaste! Mi Priya aahe. Tu kasa aahes?";
+let lastReply = "Hi! ❤️ Namaste! Mi Priya aahe.";
+let isSending = false;
+
+/*
+  Conversation history:
+  This is kept in the current browser session.
+*/
+let conversation = [];
 
 function addMessage(text, who) {
   const div = document.createElement("div");
   div.className = "msg " + who;
   div.textContent = text;
+
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
+
+  return div;
 }
 
-function getReply(text) {
-  const t = text.toLowerCase();
-
-  if (t.includes("hello") || t.includes("hi") ||
-      t.includes("namaste")) {
-    return "Hello ❤️! Kasa aahes? Aajcha divas kasa gela?";
-  }
-
-  if (t.includes("love") || t.includes("prem")) {
-    return "Prem ani aadar donhi mahatvache aahet ❤️. Sang, aaj kay vishesh?";
-  }
-
-  if (t.includes("name") || t.includes("nav")) {
-    return "Maza nav Priya aahe ❤️! Tujha divas kasa chalu aahe?";
-  }
-
-  if (t.includes("sad") || t.includes("dukhi")) {
-    return "Are, kay zala? Tu sang, mi aikayla ithe aahe. ❤️";
-  }
-
-  if (t.includes("kasa") || t.includes("how are")) {
-    return "Mi chhan aahe! 😊 Tu kasa aahes?";
-  }
-
-  if (t.includes("bye")) {
-    return "Bye! ❤️ Kalji ghe.";
-  }
-
-  return "Tujha message milala ❤️! Ajun thoda sang na, tula nemki konti madat havi aahe?";
-}
-
-function sendMessage() {
+async function sendMessage() {
   const text = input.value.trim();
-  if (!text) return;
+
+  if (!text || isSending) return;
 
   addMessage(text, "user");
   input.value = "";
 
-  const reply = getReply(text);
-  lastReply = reply;
+  isSending = true;
+  sendButton.disabled = true;
+  statusText.textContent = "Priya is thinking... ❤️";
 
-  setTimeout(() => {
-    addMessage(reply, "bot");
-  }, 400);
+  const loadingMessage = addMessage(
+    "Priya reply det aahe... ❤️",
+    "bot"
+  );
+
+  /*
+    Keep the latest conversation messages.
+    Do not send an unlimited conversation history.
+  */
+  const updatedConversation = [
+    ...conversation,
+    {
+      role: "user",
+      content: text
+    }
+  ].slice(-12);
+
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: updatedConversation
+      })
+    });
+
+    let data;
+
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(
+        "Backend kadun valid response milala nahi."
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Server error: " + response.status
+      );
+    }
+
+    if (!data.reply || typeof data.reply !== "string") {
+      throw new Error(
+        "AI reply milala nahi. Backend code check kara."
+      );
+    }
+
+    lastReply = data.reply;
+    loadingMessage.textContent = data.reply;
+
+    conversation = [
+      ...updatedConversation,
+      {
+        role: "assistant",
+        content: data.reply
+      }
+    ].slice(-12);
+
+    statusText.textContent = "Connected ❤️";
+
+  } catch (error) {
+    console.error("DilSe AI Error:", error);
+
+    loadingMessage.textContent =
+      "Sorry ❤️, Priya la connect karta ala nahi.\n\n" +
+      "Internet, backend URL ani Cloudflare Worker settings check kara.\n\n" +
+      "Error: " + error.message;
+
+    statusText.textContent = "Connection problem";
+
+  } finally {
+    isSending = false;
+    sendButton.disabled = false;
+    input.focus();
+    chat.scrollTop = chat.scrollHeight;
+  }
 }
 
 input.addEventListener("keydown", function(event) {
-  if (event.key === "Enter") sendMessage();
+  if (event.key === "Enter") {
+    sendMessage();
+  }
 });
 
 function speakLast() {
@@ -264,8 +358,9 @@ function speakLast() {
   window.speechSynthesis.cancel();
 
   const speech = new SpeechSynthesisUtterance(lastReply);
-  speech.lang = "en-IN";
+  speech.lang = "mr-IN";
   speech.rate = 0.9;
+  speech.pitch = 1;
 
   window.speechSynthesis.speak(speech);
 }
@@ -276,22 +371,54 @@ function startVoice() {
     window.webkitSpeechRecognition;
 
   if (!Recognition) {
-    alert("Voice typing support nahi. Keyboard cha microphone vapra.");
+    alert(
+      "Voice typing available nahi. Keyboard cha microphone vapra."
+    );
     return;
   }
 
   const recognition = new Recognition();
+
   recognition.lang = "mr-IN";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
   recognition.onresult = function(event) {
     input.value = event.results[0][0].transcript;
+    input.focus();
   };
 
   recognition.onerror = function() {
-    alert("Microphone permission check kara.");
+    alert(
+      "Microphone permission check kara ani punha try kara."
+    );
   };
 
   recognition.start();
 }
+
+function clearChat() {
+  if (!confirm("Sagla chat clear karaycha aahe ka?")) {
+    return;
+  }
+
+  conversation = [];
+  lastReply = "Hi! ❤️ Namaste! Mi Priya aahe.";
+
+  chat.innerHTML = "";
+
+  addMessage(
+    "Hi! ❤️ Namaste! Mi Priya aahe. Tu kasa aahes?",
+    "bot"
+  );
+
+  statusText.textContent = "AI Companion";
+
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+}
 </script>
+
 </body>
 </html>
